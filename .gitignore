@@ -1,2 +1,14 @@
 .env
-**/idea/
+**/.idea/
+__pycache__/
+*.pyc
+
+# Docker Volumes (Database Data)
+vector-db/data/
+postgres/data/
+ai_services/app/RAG/prepareDataForRag/scripts/__pycache__/
+
+# Temp files
+list_models.py
+temp_images/
+*.log

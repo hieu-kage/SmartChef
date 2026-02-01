@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 48
+names: ['bap_cai', 'bi_ngo', 'bong_cai_xanh', 'ca_chua', 'ca_rot', 'cai_bap', 'cauliflower', 'chanh', 'chickpeas', 'dau', 'dau_tay', 'dua_chuot', 'gao', 'gung', 'hanh_tay', 'khoai_tay', 'lettuce', 'mutton', 'okra', 'ot_chuong', 'palm fruit', 'papaya', 'parsley', 'pear', 'pitaya', 'qua_bo', 'qua_cam', 'qua_cherry', 'qua_chuoi', 'qua_dua', 'qua_tao', 'qua_trung', 'radish', 'raspberry', 'red meat', 'small_pepper', 'spring_onion', 'thit_bo', 'thit_ca', 'thit_ga', 'thit_heo', 'toi', 'tom', 'turmeric', 'white beans', 'white button mushroom', 'xoai', 'zucchini']
+
+roboflow:
+  workspace: hieu-ufly4
+  project: test_ingredients
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/hieu-ufly4/test_ingredients/dataset/1

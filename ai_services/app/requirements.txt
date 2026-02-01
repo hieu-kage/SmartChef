@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+onnxruntime-gpu
+opencv-python
+qdrant-client
+sentence-transformers
+python-dotenv
+pyyaml
+langchain
+langchain-google-genai
+langchain-community
