@@ -11,7 +11,7 @@ Dự án tuân theo mô hình **Kiến trúc Phân tầng (Layered Architecture)
 3.  **AI Services Layer**:
     -   **Computer Vision**: Sử dụng **YOLOv8** (ONNX Runtime) cho bài toán phát hiện đối tượng (Object Detection). Được tối ưu hóa với cơ chế **In-Memory Processing** để xử lý trực tiếp luồng byte, loại bỏ độ trễ I/O ổ cứng.
     -   **RAG Engine**: Triển khai tìm kiếm ngữ nghĩa (semantic search) sử dụng **Qdrant Vector Database** và mô hình embedding **intfloat/multilingual-e5-base** (768 chiều). Tích hợp bước hậu xử lý custom sử dụng **Jaccard Similarity** để cải thiện độ phù hợp của kết quả dựa trên sự giao thoa nguyên liệu.
-    -   **LLM Integration**: Tích hợp **Google Gemini 1.5 Flash** thông qua LangChain để sinh câu trả lời và quản lý ngữ cảnh phiên làm việc (session context-aware).
+    -   **LLM Integration**: Tích hợp **Google Gemini 2.0 Flash** thông qua LangChain để sinh câu trả lời và quản lý ngữ cảnh phiên làm việc (session context-aware).
 4.  **Infrastructure**: Các dịch vụ Vector Database (Qdrant) và Relational Database (PostgreSQL) được đóng gói và triển khai qua Docker.
 
 ## Technology Stack
