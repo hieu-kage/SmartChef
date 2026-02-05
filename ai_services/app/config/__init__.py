@@ -2,7 +2,7 @@ from . import paths
 
 YOLO_CLASS_TO_VI = {
     "bap_cai": "bắp cải",
-    "bi_ngo": "bí ngô",
+    "bi_ngo": "bí đỏ",
     "bong_cai_xanh": "bông cải xanh",
     "ca_chua": "cà chua",
     "ca_rot": "cà rốt",
@@ -35,8 +35,8 @@ YOLO_CLASS_TO_VI = {
     "qua_trung": "trứng",
     "radish": "củ cải",
     "raspberry": "mâm xôi",
-    "red meat": "thịt đỏ",
-    "small_pepper": "ớt nhỏ",
+    "red meat": "thịt bò",
+    "small_pepper": "ớt",
     "spring_onion": "hành lá",
     "thit_bo": "thịt bò",
     "thit_ca": "thịt cá",

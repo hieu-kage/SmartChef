@@ -1,5 +1,6 @@
 from .embedding import EmbeddingService
 from .vectordb import RecipeVectorDB
+from app import db
 
 class RecipeRAGService:
     """
@@ -21,10 +22,7 @@ class RecipeRAGService:
             return 0.0
 
         intersection = recipe_set & query_set
-        
-        union = recipe_set | query_set
-        
-        return len(intersection) / len(union)
+        return len(intersection) / len(recipe_set)
 
     def retrieve(self, ingredients: list[str], top_k=5):
         """
@@ -33,10 +31,21 @@ class RecipeRAGService:
         """
         query_vector = self.embedding.embed_ingredients(ingredients)
         hits = self.vectordb.search(query_vector, limit=top_k * 2)
+        print(f"Vector Hits: {len(hits)}")
 
+        if not hits:
+            return []
+
+        hit_ids = [hit.payload["recipe_id"] for hit in hits]
+        db_recipes = db.get_recipes_by_ids(hit_ids)
+        
         results = []
         for hit in hits:
             payload = hit.payload
+            r_id = payload["recipe_id"]
+            
+            recipe_detail = db_recipes.get(r_id, {})
+            
             recipe_ingredients_str = payload.get("nguyen_lieu_search", "")
             recipe_ingredients = [i.strip().lower() for i in recipe_ingredients_str.split(",")]
             
@@ -45,12 +54,19 @@ class RecipeRAGService:
                 ingredients
             )
 
+            print(f"--- Đánh giá món: {payload.get('ten_mon')} ---")
+            print(f"Điểm Match: {match_score:.2f}")
+
             if match_score >= 0.2:
                 results.append({
-                    "id": payload["id"],
+                    "id": r_id,
                     "ten_mon": payload["ten_mon"],
                     "match_score": match_score,
-                    "semantic_score": hit.score
+                    "semantic_score": hit.score,
+                    "nguyen_lieu_chi_tiet": recipe_detail.get("nguyen_lieu_chi_tiet", []),
+                    "gia_vi": recipe_detail.get("gia_vi", []),
+                    "cach_lam": recipe_detail.get("cach_lam", []),
+                    "mo_ta": recipe_detail.get("mo_ta", "")
                 })
 
         results.sort(

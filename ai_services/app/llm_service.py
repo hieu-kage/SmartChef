@@ -48,38 +48,50 @@ class LLMService:
                 google_api_key=self.api_key
             )
             
-            self.suggestion_prompt = ChatPromptTemplate.from_messages([
+            self.suggestion_prompt = ChatPromptTemplate.from_messages(messages=[
                 ("system", """
-Bạn là một chuyên gia ẩm thực thông minh (SmartChef).
-Dựa trên các nguyên liệu tôi có: {ingredients}
+Bạn là SmartChef - Chuyên gia ẩm thực thông minh.
+Người dùng đang có các nguyên liệu sau: **{ingredients}**
 
-Hệ thống đã tìm thấy các công thức liên quan sau:
+Tôi vừa tìm thấy các công thức sau trong cơ sở dữ liệu phù hợp với nguyên liệu của bạn:
 {recipe_context}
-Hãy tư vấn cho tôi:
-1. Đánh giá ngắn gọn về các nguyên liệu tôi có.
-2. Gợi ý món ăn ngon nhất từ danh sách trên hoặc một món khác sáng tạo nếu các món trên chưa phù hợp.
-3. Hướng dẫn sơ chế nhanh hoặc mẹo nấu ăn cho các nguyên liệu này.
+
+Nhiệm vụ của bạn:
+1. Xác nhận nguyên liệu người dùng có: Liệt kê lại 3-5 nguyên liệu quan trọng nhất từ input của người dùng (để chắc chắn bạn không bị nhầm lẫn).
+2. CHỌN 1 món ăn tốt nhất trong danh sách trên để hướng dẫn. 
+   **QUAN TRỌNG:** So sánh Nguyên Liệu Chính của món ăn với danh sách bạn vừa liệt kê ở bước 1.
+   - Nếu món ăn yêu cầu "Thịt bò" mà người dùng chỉ có "Thịt heo" -> LOẠI NGAY (dù điểm match cao).
+
+3. Trả lời theo cấu trúc sau:
+   - "Dựa trên nguyên liệu của bạn (gồm ...), tôi đề xuất món: [Tên Món Chọn]"
+   - Giải thích ngắn gọn tại sao chọn món này.
+   - Hướng dẫn chi tiết cách làm (Dựa trên thông tin "Cách làm" đã cung cấp trong context).
+   - Mẹo nhỏ để món ăn ngon hơn.
+
+Lưu ý:
+- Chỉ sáng tạo món mới NẾU VÀ CHỈ NẾU danh sách trên hoàn toàn không phù hợp (ví dụ sai lệch nguyên liệu chính).
+- Tuyệt đối không nói "Dựa trên danh sách bạn cung cấp", hãy nói "Hệ thống tìm thấy...".
 """),
                 MessagesPlaceholder(variable_name="history"),
                 ("human", "{question}"), 
             ])
 
-            self.chat_prompt = ChatPromptTemplate.from_messages([
+            self.chat_prompt = ChatPromptTemplate.from_messages(messages=[
                 ("system", "Bạn là SmartChef. Hãy trả lời câu hỏi của người dùng dựa trên ngữ cảnh các món ăn và nguyên liệu đã thảo luận trước đó."),
                 MessagesPlaceholder(variable_name="history"),
                 ("human", "{question}"),
             ])
             
             self.suggestion_chain = RunnableWithMessageHistory(
-                self.suggestion_prompt | self.llm | StrOutputParser(),
-                get_session_history,
+                runnable=self.suggestion_prompt | self.llm | StrOutputParser(),
+                get_session_history=get_session_history,
                 input_messages_key="question",
                 history_messages_key="history",
             )
             
             self.chat_chain = RunnableWithMessageHistory(
-                self.chat_prompt | self.llm | StrOutputParser(),
-                get_session_history,
+                runnable=self.chat_prompt | self.llm | StrOutputParser(),
+                get_session_history=get_session_history,
                 input_messages_key="question",
                 history_messages_key="history",
             )
@@ -101,13 +113,27 @@ Hãy tư vấn cho tôi:
         ingredient_str = ", ".join(ingredients)
         recipe_context = ""
         for i, r in enumerate(recipes):
-            recipe_context += f"{i+1}. Tên món: {r['ten_mon']} (Độ khớp thành phần: {r['match_score']:.2f})\n"
+            recipe_context += f"{i+1}. Tên món: {r['ten_mon']} (Độ khớp: {r['match_score']:.2f})\n"
+            recipe_context += f"   - Mô tả: {r.get('mo_ta', '')}\n"
+            
+            nguyen_lieu = ", ".join(r.get('nguyen_lieu_chi_tiet', [])) or "Không có thông tin"
+            recipe_context += f"   - Nguyên liệu chi tiết: {nguyen_lieu}\n"
+            
+            gia_vi = ", ".join(r.get('gia_vi', [])) or "Không có thông tin"
+            recipe_context += f"   - Gia vị: {gia_vi}\n"
+            
+            steps = r.get('cach_lam', [])
+            if steps:
+                cach_lam_str = "\n".join([f"     + {step}" for step in steps])
+            else:
+                cach_lam_str = "     + Không có thông tin"
+            recipe_context += f"   - Cách làm:\n{cach_lam_str}\n\n"
 
         try:
             user_msg = "Hãy gợi ý món ăn cho tôi dựa trên các nguyên liệu này."
             
             response = self.suggestion_chain.invoke(
-                {
+                input={
                     "ingredients": ingredient_str,
                     "recipe_context": recipe_context,
                     "question": user_msg
