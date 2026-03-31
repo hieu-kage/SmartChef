@@ -14,14 +14,14 @@ API_KEY = os.getenv("GOOGLE_API_KEY")
 MODEL_NAME = "gemma-3-27b-it" 
 
 if not API_KEY:
-    print("❌ Lỗi: Chưa tìm thấy API KEY trong file .env")
+    print(" Lỗi: Chưa tìm thấy API KEY trong file .env")
     exit()
 
 try:
     genai.configure(api_key=API_KEY)
     model = genai.GenerativeModel(MODEL_NAME)
 except Exception as e:
-    print(f"❌ Lỗi cấu hình Gemini: {e}")
+    print(f" Lỗi cấu hình Gemini: {e}")
     exit()
 
 DB_FILE = os.path.join(os.path.dirname(__file__), "../smartchef_dataset.json")
@@ -82,7 +82,7 @@ def find_dmx_links(dish_name):
             if "dienmayxanh.com" in link:
                 links.append(link)
     except Exception as e:
-        print(f"⚠️ Lỗi DuckDuckGo: {e}")
+        print(f" Lỗi DuckDuckGo: {e}")
     return links
 
 def get_html_strict(url):
@@ -112,7 +112,6 @@ def get_html_strict(url):
         return None
 
 def process_to_json(html_text, original_name):
-    # print(f"🤖 Đang phân tích...")
     
     prompt = f"""
     Bạn là chuyên gia dữ liệu ẩm thực Việt Nam. Nhiệm vụ: Trích xuất công thức từ văn bản raw bên dưới thành JSON chuẩn.
@@ -145,7 +144,6 @@ def process_to_json(html_text, original_name):
     Nếu không tìm thấy công thức, trả về: {{}}
     """
     
-    # Retry logic cho rate limit (30 RPM / 15k TPM)
     max_retries = 5
     wait_time = 20
 
@@ -165,14 +163,14 @@ def process_to_json(html_text, original_name):
         except Exception as e:
             error_msg = str(e)
             if "429" in error_msg or "ResourceExhausted" in error_msg:
-                print(f"⏳ Hết quota (429). Đợi {wait_time}s rồi thử lại... (Lần {attempt+1}/{max_retries})")
+                print(f" Hết quota (429). Đợi {wait_time}s rồi thử lại... (Lần {attempt+1}/{max_retries})")
                 time.sleep(wait_time)
                 wait_time *= 1.5 
             else:
-                print(f"⚠️ Lỗi Parse/Gen AI: {e}")
+                print(f" Lỗi Parse/Gen AI: {e}")
                 return None
     
-    print("❌ Bỏ qua món này sau nhiều lần retry thất bại.")
+    print(" Bỏ qua món này sau nhiều lần retry thất bại.")
     return None
 
 def save_append(data):
@@ -187,7 +185,7 @@ def save_append(data):
     # Check trùng
     for item in current_data:
         if item.get('id') == data.get('id'):
-            print(f"⏩ Đã có: {data.get('ten_mon')}")
+            print(f" Đã có: {data.get('ten_mon')}")
             return
 
     # Lưu mới 

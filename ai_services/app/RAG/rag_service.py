@@ -10,26 +10,35 @@ class RecipeRAGService:
         self.embedding = EmbeddingService()
         self.vectordb = RecipeVectorDB()
 
-
-    def ingredient_match_score(self, recipe_ingredients, query_ingredients):
+    def ingredient_match_score(self, required_ingredients, available_ingredients):
         """
-        Tính điểm độ khớp nguyên liệu (Intersection over Query).
+        Khớp chuỗi linh hoạt: So sánh đồ YÊU CẦU (required) với đồ SẴN CÓ (available).
         """
-        recipe_set = set(recipe_ingredients)
-        query_set = set(query_ingredients)
-
-        if not query_set or not recipe_set:
+        if not available_ingredients or not required_ingredients:
             return 0.0
 
-        intersection = recipe_set & query_set
-        return len(intersection) / len(recipe_set)
+        avail_norm = [a.lower().strip() for a in available_ingredients]
+        req_norm = [r.lower().strip() for r in required_ingredients]
 
-    def retrieve(self, ingredients: list[str], top_k=5):
+        matched_count = 0
+        for req in req_norm:
+            is_matched = False
+            for avail in avail_norm:
+                if req in avail or avail in req:
+                    is_matched = True
+                    break
+
+            if is_matched:
+                matched_count += 1
+
+        return matched_count / len(req_norm)
+
+    def retrieve(self, available_ingredients: list[str], top_k=5):
         """
         Tìm kiếm công thức phù hợp dựa trên danh sách nguyên liệu.
         Kết hợp Semantic Search (Vector) và Keyword Matching.
         """
-        query_vector = self.embedding.embed_ingredients(ingredients)
+        query_vector = self.embedding.embed_ingredients(available_ingredients)
         hits = self.vectordb.search(query_vector, limit=top_k * 2)
         print(f"Vector Hits: {len(hits)}")
 
@@ -45,19 +54,19 @@ class RecipeRAGService:
             r_id = payload["recipe_id"]
             
             recipe_detail = db_recipes.get(r_id, {})
-            
-            recipe_ingredients_str = payload.get("nguyen_lieu_search", "")
-            recipe_ingredients = [i.strip().lower() for i in recipe_ingredients_str.split(",")]
+
+            required_ingredients_str = payload.get("nguyen_lieu_search", "")
+            required_ingredients = [i.strip().lower() for i in required_ingredients_str.split(",")]
             
             match_score = self.ingredient_match_score(
-                recipe_ingredients,
-                ingredients
+                required_ingredients,
+                available_ingredients
             )
 
             print(f"--- Đánh giá món: {payload.get('ten_mon')} ---")
             print(f"Điểm Match: {match_score:.2f}")
 
-            if match_score >= 0.2:
+            if match_score >= 0.7:
                 results.append({
                     "id": r_id,
                     "ten_mon": payload["ten_mon"],
@@ -75,3 +84,7 @@ class RecipeRAGService:
         )
 
         return results[:top_k]
+
+
+
+

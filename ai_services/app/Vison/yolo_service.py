@@ -7,7 +7,7 @@ Dịch vụ nhận diện nguyên liệu sử dụng mô hình YOLO (ONNX Runtim
 Quy trình xử lý (Pipeline):
 1. Preprocess: Resize và chuẩn hóa ảnh đầu vào.
 2. Inference: Chạy model ONNX để detect object.
-3. Postprocess: Lọc ngưỡng confidence và NMS (nếu cần).
+3. Postprocess: Lọc ngưỡng confidence và NMS bằng NumPy (Đã tối ưu Vectorization).
 4. Normalization: Ánh xạ nhãn (label) sang tiếng Việt chuẩn.
 """
 
@@ -17,7 +17,6 @@ import onnxruntime as ort
 import yaml
 from ..config import YOLO_CLASS_TO_VI
 from .. import config
-
 
 class YoloIngredientService:
     """
@@ -44,11 +43,9 @@ class YoloIngredientService:
         )
 
         self.conf_threshold = conf_threshold
-
         self.class_names = self._load_class_names(data_yaml_path)
 
-    def _load_class_names(self, data_yaml_path: str) -> list[str]:
-
+    def _load_class_names(self, data_yaml_path: str):
         with open(data_yaml_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
         return data["names"]
@@ -62,9 +59,9 @@ class YoloIngredientService:
         detections = self.detect_objects(image_bytes)
         return self.normalize_ingredients(detections)
 
-    def detect_objects(self, image_bytes: bytes):
+    def detect_objects(self, image_bytes: bytes) -> list[dict]:
         """
-        Thực hiện inference YOLO để lấy raw predictions.
+        Thực hiện inference YOLO để lấy raw predictions (Đã tối ưu tốc độ bằng NumPy).
         Args:
             image_bytes (bytes): Dữ liệu ảnh.
         """
@@ -73,6 +70,8 @@ class YoloIngredientService:
         
         if image is None:
             raise ValueError("Could not decode image bytes")
+            
+        original_h, original_w = image.shape[:2]
         img = self._preprocess(image)
 
         outputs = self.session.run(None, {self.input_name: img})
@@ -83,49 +82,49 @@ class YoloIngredientService:
 
         predictions = predictions.transpose()
         
-        boxes = []
-        confidences = []
-        class_ids = []
+        # --- TỐI ƯU HÓA: Vectorization ---
+        boxes = predictions[:, :4]
+        scores = predictions[:, 4:]
 
-        for pred in predictions:
-            scores = pred[4:]
-            class_id = np.argmax(scores)
-            confidence = scores[class_id]
-            
-            if confidence >= self.conf_threshold:
-                cx, cy, w, h = pred[0], pred[1], pred[2], pred[3]
-                
-                x = cx - w / 2
-                y = cy - h / 2
-                
-                boxes.append([x, y, w, h])
-                confidences.append(float(confidence))
-                class_ids.append(class_id)
+        class_ids = np.argmax(scores, axis=1)
+        confidences = np.max(scores, axis=1)
 
-        indices = cv2.dnn.NMSBoxes(boxes, confidences, self.conf_threshold, 0.45)
-
+        mask = confidences >= self.conf_threshold
+        boxes = boxes[mask]
+        confidences = confidences[mask]
+        class_ids = class_ids[mask]
+        
         detections = []
-        if len(indices) > 0:
-            original_h, original_w = image.shape[:2]
-            scale_x = original_w / self.input_size
-            scale_y = original_h / self.input_size
+        if len(boxes) == 0:
+            return detections
 
+        x = boxes[:, 0] - boxes[:, 2] / 2
+        y = boxes[:, 1] - boxes[:, 3] / 2
+        w = boxes[:, 2]
+        h = boxes[:, 3]
+        
+        boxes_xywh = np.column_stack((x, y, w, h)).tolist()
+        confidences_list = confidences.tolist()
+
+        indices = cv2.dnn.NMSBoxes(boxes_xywh, confidences_list, self.conf_threshold, 0.45)
+
+        if len(indices) > 0:
             for i in indices.flatten():
-                box = boxes[i]
-                x, y, w, h = box
+                # Lấy tên class an toàn hỗ trợ cả Dict và List từ file data.yaml
+                c_id = class_ids[i]
+                raw_label = self.class_names[c_id] if isinstance(self.class_names, (list, tuple)) else self.class_names.get(c_id, f"class_{c_id}")
                 
                 detections.append({
-                   "raw_label": self.class_names[class_ids[i]],
-                   "confidence": confidences[i]
+                    "raw_label": raw_label,
+                    "confidence": float(confidences_list[i])
                 })
 
         return detections
 
-    def normalize_ingredients(self, detections):
+    def normalize_ingredients(self, detections: list[dict]) -> list[str]:
         """
-        Chuyển đổi raw label (EN) sang tên hiển thị (VN) thông qua từ điển cấu hình.
+        Chuyển đổi raw label (EN/Không dấu) sang tên hiển thị (VN) thông qua từ điển cấu hình.
         """
-
         ingredients = set()
 
         for d in detections:
@@ -138,20 +137,9 @@ class YoloIngredientService:
         return list(ingredients)
 
     def _preprocess(self, image):
-
         img = cv2.resize(image, (self.input_size, self.input_size))
-        img = img[:, :, ::-1] 
+        img = img[:, :, ::-1] # BGR to RGB
         img = img.astype(np.float32) / 255.0
         img = np.transpose(img, (2, 0, 1))
         img = np.expand_dims(img, axis=0)
         return img
-
-
-if __name__ == "__main__":
-    yolo_service = YoloIngredientService()
-
-    test_image_path = "test_images/salad.jpg"
-    with open(test_image_path, "rb") as f:
-        img_bytes = f.read()
-    ingredients = yolo_service.detect_ingredients(img_bytes)
-    print("Detected ingredients:", ingredients)

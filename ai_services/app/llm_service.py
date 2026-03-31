@@ -1,137 +1,167 @@
-"""
-Module: LLM Service
-=================
-
-Cung cấp dịch vụ Xử lý Ngôn ngữ Tự nhiên (NLP) thông qua Google Gemini và LangChain.
-
-Chức năng:
-- Quản lý ngữ cảnh hội thoại (Context Management) theo session.
-- Sinh nội dung tư vấn món ăn dựa trên nguyên liệu và công thức.
-- Xử lý các tác vụ Chat General.
-"""
-
 import os
+import psycopg
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
-from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain_postgres import PostgresChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
 load_dotenv()
 
-store = {}
-
-def get_session_history(session_id: str):
-    if session_id not in store:
-        store[session_id] = ChatMessageHistory()
-    return store[session_id]
-
 class LLMService:
     """
     Service wrapper cho Google Gemini API và LangChain.
+    Đã tích hợp: Postgres Database, Sliding Window Memory & Summarization.
     """
     def __init__(self):
+        # 1. Cấu hình môi trường & Database
         self.api_key = os.getenv("GOOGLE_API_KEY")
+        self.db_url = os.getenv("DATABASE_URL", "postgresql://admin:admin@localhost:5432/smartchef_db")
+        self.model_name = os.getenv("MODEL_NAME", "gemini-1.5-flash")
+        self.sync_connection = psycopg.connect(self.db_url)
         if not self.api_key:
             print("Warning: GOOGLE_API_KEY not found. LLM service will not work.")
+            return
+
+        # 2. Khởi tạo Model
+        self.llm = ChatGoogleGenerativeAI(
+            model=self.model_name,
+            temperature=0.7, # 0.1
+            top_p=0.95,
+            top_k=40,
+            max_output_tokens=8192,
+            google_api_key=self.api_key
+        )
         
-        self.model_name = os.getenv("MODEL_NAME", "gemini-1.5-flash")
+        # 3. Định nghĩa Prompts & Chains
+        self._init_prompts()
+        self._init_chains()
+
+    def _init_prompts(self):
+        """Khởi tạo toàn bộ khuôn mẫu Prompt"""
         
-        if self.api_key:
-            self.llm = ChatGoogleGenerativeAI(
-                model=self.model_name,
-                temperature=0.7,
-                top_p=0.95,
-                top_k=40,
-                max_output_tokens=8192,
-                google_api_key=self.api_key
-            )
+        # Prompt 1: Dùng cho lần đầu tiên user up ảnh (RAG)
+        self.suggestion_prompt = ChatPromptTemplate.from_messages([
+            ("system", """Bạn là SmartChef - Chuyên gia ẩm thực thông minh.
+            Người dùng đang có các nguyên liệu sau: **{ingredients}**
             
-            self.suggestion_prompt = ChatPromptTemplate.from_messages(messages=[
-                ("system", """
-Bạn là SmartChef - Chuyên gia ẩm thực thông minh.
-Người dùng đang có các nguyên liệu sau: **{ingredients}**
-
-Tôi vừa tìm thấy các công thức sau trong cơ sở dữ liệu phù hợp với nguyên liệu của bạn:
-{recipe_context}
-
-Nhiệm vụ của bạn:
-1. Xác nhận nguyên liệu người dùng có: Liệt kê lại 3-5 nguyên liệu quan trọng nhất từ input của người dùng (để chắc chắn bạn không bị nhầm lẫn).
-2. CHỌN 1 món ăn tốt nhất trong danh sách trên để hướng dẫn. 
-   **QUAN TRỌNG:** So sánh Nguyên Liệu Chính của món ăn với danh sách bạn vừa liệt kê ở bước 1.
-   - Nếu món ăn yêu cầu "Thịt bò" mà người dùng chỉ có "Thịt heo" -> LOẠI NGAY (dù điểm match cao).
-
-3. Trả lời theo cấu trúc sau:
-   - "Dựa trên nguyên liệu của bạn (gồm ...), tôi đề xuất món: [Tên Món Chọn]"
-   - Giải thích ngắn gọn tại sao chọn món này.
-   - Hướng dẫn chi tiết cách làm (Dựa trên thông tin "Cách làm" đã cung cấp trong context).
-   - Mẹo nhỏ để món ăn ngon hơn.
-
-Lưu ý:
-- Chỉ sáng tạo món mới NẾU VÀ CHỈ NẾU danh sách trên hoàn toàn không phù hợp (ví dụ sai lệch nguyên liệu chính).
-- Tuyệt đối không nói "Dựa trên danh sách bạn cung cấp", hãy nói "Hệ thống tìm thấy...".
-"""),
-                MessagesPlaceholder(variable_name="history"),
-                ("human", "{question}"), 
-            ])
-
-            self.chat_prompt = ChatPromptTemplate.from_messages(messages=[
-                ("system", "Bạn là SmartChef. Hãy trả lời câu hỏi của người dùng dựa trên ngữ cảnh các món ăn và nguyên liệu đã thảo luận trước đó."),
-                MessagesPlaceholder(variable_name="history"),
-                ("human", "{question}"),
-            ])
+            Các công thức tìm thấy trong DB:
+            {recipe_context}
             
-            self.suggestion_chain = RunnableWithMessageHistory(
-                runnable=self.suggestion_prompt | self.llm | StrOutputParser(),
-                get_session_history=get_session_history,
-                input_messages_key="question",
-                history_messages_key="history",
-            )
+            Nhiệm vụ:
+            1. Xác nhận nguyên liệu người dùng có.
+            2. CHỌN 1 món ăn tốt nhất và so sánh nguyên liệu chính để đảm bảo khớp.
+            3. Hướng dẫn cách làm chi tiết và giải thích lý do chọn món.
+            """),
+            MessagesPlaceholder(variable_name="history"),
+            ("human", "{question}"), 
+        ])
+
+        # Prompt 2: Dùng cho hội thoại hàng ngày (Có tiêm Summary)
+        self.chat_prompt = ChatPromptTemplate.from_messages([
+            ("system", """Bạn là SmartChef - Trợ lý đầu bếp thông minh.
+            TÓM TẮT HỘI THOẠI QUÁ KHỨ: {summary}
             
-            self.chat_chain = RunnableWithMessageHistory(
-                runnable=self.chat_prompt | self.llm | StrOutputParser(),
-                get_session_history=get_session_history,
-                input_messages_key="question",
-                history_messages_key="history",
-            )
+            BẠN BẮT BUỘC PHẢI TUÂN THỦ CÁC QUY TẮC SAU:
+            1. CHỈ trả lời các câu hỏi liên quan đến ẩm thực, nấu ăn, công thức, nguyên liệu và dinh dưỡng.
+            2. NẾU người dùng hỏi về các chủ đề KHÁC (lập trình, toán học, chính trị, thời tiết...), BẮT BUỘC từ chối khéo léo: "Xin lỗi, tôi là đầu bếp SmartChef nên chỉ có thể giúp bạn các vấn đề về nấu ăn thôi nhé!". Tuyệt đối không trả lời nội dung lạc đề.
+            3. Trả lời DỰA TRÊN ngữ cảnh và lịch sử. Nếu không biết hoặc không có thông tin trong dữ liệu, hãy nói "Tôi chưa có thông tin về món này, bạn có thể thử nguyên liệu khác không?". Không tự bịa ra công thức.
+            """),
+            MessagesPlaceholder(variable_name="history"),
+            ("human", "{question}"),
+        ])
+
+        # Prompt 3: Dùng cho tác vụ ngầm - Tóm tắt hội thoại
+        self.sum_prompt = ChatPromptTemplate.from_messages([
+            ("system", "Hãy tóm tắt hội thoại sau cực kỳ ngắn gọn. BẮT BUỘC giữ lại danh sách nguyên liệu và món ăn đang được nhắc tới."),
+            MessagesPlaceholder(variable_name="history"),
+            ("human", "Tóm tắt nội dung trên.")
+        ])
+
+    def _init_chains(self):
+        """Đóng gói các chuỗi xử lý"""
+        # Chain tóm tắt (Chạy ngầm, không cần lưu history)
+        self.summary_chain = self.sum_prompt | self.llm | StrOutputParser()
+
+        # Chain Suggestion (Có lưu history)
+        self.suggestion_chain = RunnableWithMessageHistory(
+            runnable=self.suggestion_prompt | self.llm | StrOutputParser(),
+            get_session_history=self._get_session_history,
+            input_messages_key="question",
+            history_messages_key="history",
+        )
+        
+        # Chain Chat (Có lưu history)
+        self.chat_chain = RunnableWithMessageHistory(
+            runnable=self.chat_prompt | self.llm | StrOutputParser(),
+            get_session_history=self._get_session_history,
+            input_messages_key="question",
+            history_messages_key="history",
+        )
+
+    # ==========================================
+    # QUẢN LÝ DATABASE & TRÍ NHỚ
+    # ==========================================
+
+    def _get_session_history(self, session_id: str):
+        """Kết nối Postgres và cắt tỉa tin nhắn bằng gói langchain-postgres mới"""
+        history = PostgresChatMessageHistory(
+            "chat_history",
+            session_id,
+            sync_connection=self.sync_connection
+        )
+
+        # Cửa sổ trượt: Chỉ lấy 10 câu gần nhất
+        if len(history.messages) > 10:
+            history.messages = history.messages[-10:]
+
+        return history
+
+    def _save_summary(self, session_id: str, summary: str):
+        """Lưu bản tóm tắt vào Postgres (UPSERT)"""
+        with psycopg.connect(self.db_url) as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO session_metadata (session_id, summary) 
+                    VALUES (%s, %s)
+                    ON CONFLICT (session_id) DO UPDATE SET 
+                        summary = EXCLUDED.summary,
+                        updated_at = CURRENT_TIMESTAMP;
+                """, (session_id, summary))
+
+    def _get_summary(self, session_id: str) -> str:
+        """Lấy bản tóm tắt hiện tại từ Postgres"""
+        with psycopg.connect(self.db_url) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT summary FROM session_metadata WHERE session_id = %s", (session_id,))
+                res = cur.fetchone()
+                return res[0] if res else "Người dùng vừa mới bắt đầu phiên hội thoại."
+
+    # ==========================================
+    # CÁC HÀM XỬ LÝ CHÍNH (PUBLIC API)
+    # ==========================================
 
     def generate_suggestion(self, session_id: str, ingredients: list[str], recipes: list[dict]) -> str:
-        """
-        Sinh nội dung tư vấn món ăn từ LLM.
-
-        Args:
-            session_id (str): ID phiên làm việc.
-            ingredients (list[str]): Danh sách nguyên liệu đầu vào.
-            recipes (list[dict]): Danh sách công thức đã tìm được từ RAG.
-
-        Returns:
-            str: Nội dung tư vấn từ AI.
-        """
+        """Gợi ý món ăn lần đầu khi user gửi ảnh"""
         if not self.api_key: return "LLM not configured."
-
+        
         ingredient_str = ", ".join(ingredients)
+        
+        # 1. LƯU GỐC: Ghi ngay danh sách nguyên liệu vào Summary để AI không bao giờ quên
+        initial_summary = f"Người dùng hiện đang có các nguyên liệu: {ingredient_str}."
+        self._save_summary(session_id, initial_summary)
+
+        # 2. Chuẩn bị Context từ Database
         recipe_context = ""
         for i, r in enumerate(recipes):
-            recipe_context += f"{i+1}. Tên món: {r['ten_mon']} (Độ khớp: {r['match_score']:.2f})\n"
-            recipe_context += f"   - Mô tả: {r.get('mo_ta', '')}\n"
-            
-            nguyen_lieu = ", ".join(r.get('nguyen_lieu_chi_tiet', [])) or "Không có thông tin"
-            recipe_context += f"   - Nguyên liệu chi tiết: {nguyen_lieu}\n"
-            
-            gia_vi = ", ".join(r.get('gia_vi', [])) or "Không có thông tin"
-            recipe_context += f"   - Gia vị: {gia_vi}\n"
-            
-            steps = r.get('cach_lam', [])
-            if steps:
-                cach_lam_str = "\n".join([f"     + {step}" for step in steps])
-            else:
-                cach_lam_str = "     + Không có thông tin"
-            recipe_context += f"   - Cách làm:\n{cach_lam_str}\n\n"
+            recipe_context += f"{i+1}. Tên món: {r.get('ten_mon', '')}\n"
+            recipe_context += f"   - Nguyên liệu: {', '.join(r.get('nguyen_lieu_chi_tiet', []))}\n"
+            recipe_context += f"   - Cách làm: {r.get('cach_lam', ['Không có'])}\n\n"
 
+        # 3. Gọi AI
         try:
             user_msg = "Hãy gợi ý món ăn cho tôi dựa trên các nguyên liệu này."
-            
             response = self.suggestion_chain.invoke(
                 input={
                     "ingredients": ingredient_str,
@@ -145,16 +175,27 @@ Lưu ý:
             return f"Error generating suggestion: {str(e)}"
 
     def chat(self, session_id: str, message: str) -> str:
-        """
-        Trả lời câu hỏi của người dùng dựa trên lịch sử chat.
-        """
+        """Hội thoại Follow-up có sử dụng Trí nhớ dài hạn"""
         if not self.api_key: return "LLM not configured."
         
+        # 1. Kéo bản tóm tắt từ Database lên
+        current_summary = self._get_summary(session_id)
+
         try:
+            # 2. Chat với AI (Truyền cả summary và câu hỏi mới)
             response = self.chat_chain.invoke(
-                {"question": message},
+                {"question": message, "summary": current_summary},
                 config={"configurable": {"session_id": session_id}}
             )
+
+            # 3. CẬP NHẬT TRÍ NHỚ: Nếu chat quá 10 câu, tự động nén lại
+            history_obj = self._get_session_history(session_id)
+            if len(history_obj.messages) >= 10:
+                # Bắt AI đọc đống lịch sử dài ngoằng và viết lại tóm tắt
+                new_summary = self.summary_chain.invoke({"history": history_obj.messages})
+                # Cập nhật vào DB
+                self._save_summary(session_id, new_summary)
+                
             return response
         except Exception as e:
             return f"Error replying to chat: {str(e)}"

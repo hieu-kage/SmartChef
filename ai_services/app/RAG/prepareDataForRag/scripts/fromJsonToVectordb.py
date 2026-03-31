@@ -5,8 +5,6 @@ import psycopg2
 import json
 
 
-
-
 import uuid
 
 COLLECTION_NAME = "recipes"

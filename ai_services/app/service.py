@@ -58,44 +58,43 @@ class SmartChefService:
     def suggest_recipes(self, image_bytes: bytes, session_id: str = "default") -> dict:
         """
         Thực hiện quy trình đầy đủ: Nhận diện -> Tìm kiếm -> Tư vấn.
-
-        Args:
-            image_bytes (bytes): Dữ liệu ảnh dạng byte.
-            session_id (str): ID phiên làm việc của người dùng.
-
-        Returns:
-            dict: Kết quả bao gồm nguyên liệu, danh sách công thức và lời khuyên từ AI.
         """
         result = {
             "detected_ingredients": [],
             "recipes": [],
-            "llm_suggestion": ""
+            "llm_suggestion": "",
+            "error": None  
         }
 
         if self.yolo_service:
             try:
-                ingredients = self.yolo_service.detect_ingredients(image_bytes)
-                result["detected_ingredients"] = ingredients
-                logger.info(f"Detected ingredients: {ingredients}")
+                detected = self.yolo_service.detect_ingredients(image_bytes)
+                result["detected_ingredients"] = detected
+                logger.info(f"Detected ingredients: {detected}")
             except Exception as e:
                 logger.error(f"Error in Yolo detection: {e}")
-                return {"error": f"Yolo Error: {str(e)}"}
+                result["error"] = f"Yolo Error: {str(e)}"
+                return result
         else:
-             logger.warning("Yolo Service not available.")
-             return {"error": "Yolo Service not available"}
-
-        if not ingredients:
-            result["llm_suggestion"] = "Không tìm thấy nguyên liệu nào trong ảnh."
+            logger.warning("Yolo Service not available.")
+            result["error"] = "Yolo Service not available"
             return result
 
+        if not result["detected_ingredients"]:
+            result[
+                "llm_suggestion"] = "Tôi không tìm thấy nguyên liệu thực phẩm nào rõ ràng trong ảnh. Bạn chụp gần hơn nhé!"
+            return result
+
+        # 2. TÌM KIẾM CÔNG THỨC (RAG)
         if self.rag_service:
             try:
-                recipes = self.rag_service.retrieve(ingredients)
+                recipes = self.rag_service.retrieve(result["detected_ingredients"])
                 result["recipes"] = recipes
                 logger.info(f"Retrieved {len(recipes)} recipes.")
             except Exception as e:
                 logger.error(f"Error in RAG retrieval: {e}")
-                
+                # Cố tình không return ở đây để LLM vẫn có thể "chữa cháy"
+
         if self.llm_service:
             try:
                 suggestion = self.llm_service.generate_suggestion(
@@ -107,10 +106,10 @@ class SmartChefService:
                 logger.info("LLM suggestion generated.")
             except Exception as e:
                 logger.error(f"Error in LLM generation: {e}")
-                result["llm_suggestion"] = "Lỗi khi tạo gợi ý từ AI."
+                result[
+                    "llm_suggestion"] = "Đã xảy ra lỗi khi tạo lời khuyên từ AI, nhưng bạn có thể xem các công thức bên dưới."
 
         return result
-
     def chat(self, session_id: str, message: str) -> dict:
         """
         Xử lý hội thoại tiếp diễn với người dùng.
