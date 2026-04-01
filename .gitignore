@@ -1,14 +1,24 @@
 .env
-**/.idea/
+.idea/
+.vscode/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
 
 # Docker Volumes (Database Data)
 vector-db/data/
 postgres/data/
-ai_services/app/RAG/prepareDataForRag/scripts/__pycache__/
 
-# Temp files
-list_models.py
+# AI Model & Temp files
 temp_images/
 *.log
+*.xlsx
+.DS_Store
+
+# Large datasets (should be downloaded or provided separately)
+# smartchef_dataset.json

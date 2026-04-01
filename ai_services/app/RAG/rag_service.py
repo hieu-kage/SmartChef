@@ -82,7 +82,6 @@ class RecipeRAGService:
             key=lambda x: (x["match_score"], x["semantic_score"]),
             reverse=True
         )
-
         return results[:top_k]
 
 

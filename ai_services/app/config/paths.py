@@ -29,7 +29,7 @@ RAG_SERVICES_DIR = AI_SERVICES_DIR / "app" / "RAG"
 PREPARE_DATA_DIR = AI_SERVICES_DIR/ "app" / "RAG" / "prepareDataForRag"
 PREPARE_SCRIPTS_DIR = PREPARE_DATA_DIR / "scripts"
 
-YOLO_SERVICE_DIR = AI_SERVICES_DIR / "app" / "Vison"
+YOLO_SERVICE_DIR = AI_SERVICES_DIR / "app" / "Vision"
 YOLO_MODEL_PATH = YOLO_SERVICE_DIR / "Yolo_Model" / "best.onnx"
 YOLO_DATA_YAML = YOLO_SERVICE_DIR / "Yolo_Model" / "data.yaml"
 

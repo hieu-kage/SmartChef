@@ -13,7 +13,7 @@ Quy trình `chat`:
 - Quản lý hội thoại ngữ cảnh lỏng (Contextual Conversation) thông qua LLM Service.
 """
 
-from .Vison.yolo_service import YoloIngredientService
+from .Vision.yolo_service import YoloIngredientService
 from .RAG.rag_service import RecipeRAGService
 from .llm_service import LLMService
 import logging
@@ -93,7 +93,6 @@ class SmartChefService:
                 logger.info(f"Retrieved {len(recipes)} recipes.")
             except Exception as e:
                 logger.error(f"Error in RAG retrieval: {e}")
-                # Cố tình không return ở đây để LLM vẫn có thể "chữa cháy"
 
         if self.llm_service:
             try:

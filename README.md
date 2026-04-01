@@ -23,50 +23,34 @@ Dự án tuân theo mô hình **Kiến trúc Phân tầng (Layered Architecture)
 -   **Databases**: Qdrant (Vector), PostgreSQL (Relational)
 -   **Deployment**: Docker, Docker Compose
 
-## Cài Đặt và Triển Khai
+## Cài Đặt và Triển Khai (3 Bước Siêu Tốc)
 
-### Yêu cầu tiên quyết
--   Python 3.10 hoặc mới hơn
--   Docker Desktop
+Dự án đã được "Docker hóa" toàn phần. Bạn không cần cài đặt Python hay database thủ công.
 
-### Các bước cài đặt
+### 1. Clone repository
+```bash
+git clone https://github.com/your-username/SmartChef-AI.git
+cd SmartChef-AI
+```
 
-1.  **Clone repository**
-    ```bash
-    git clone https://github.com/your-username/SmartChef-AI.git
-    cd SmartChef-AI
-    ```
+### 2. Cấu hình Biến môi trường
+Sao chép file mẫu và điền `GOOGLE_API_KEY` của bạn:
+```bash
+cp .env.example .env
+# Mở file .env và dán API Key của bạn vào
+```
 
-2.  **Cấu hình Biến môi trường**
-    Tạo file `.env` tại thư mục gốc:
-    ```ini
-    GOOGLE_API_KEY=your_gemini_key_here
-    POSTGRES_USER=admin
-    POSTGRES_PASSWORD=admin
-    POSTGRES_DB=smartchef_db
-    MODEL_NAME = gemini-2.5-flash-lite
-    ```
+### 3. Khởi chạy hệ thống
+Chỉ cần một lệnh duy nhất để khởi động toàn bộ Database, Vector DB và AI Service:
+```bash
+docker-compose up --build -d
+```
 
-3.  **Cài đặt các thư viện phụ thuộc**
-    ```bash
-    pip install -r ai_services/app/requirements.txt
-    ```
+> **Lưu ý**: Hệ thống sẽ tự động kiểm tra và nạp dữ liệu (Ingestion) vào database trong lần đầu khởi chạy. Bạn có thể theo dõi quá trình này qua log: `docker-compose logs -f ai_app`.
 
-4.  **Khởi động hạ tầng (Infrastructure)**
-    ```bash
-    docker-compose up -d
-    ```
+## Tài liệu API
 
-5.  **Khởi tạo Knowledge Base (RAG)**
-    Chạy script ingestion để embedding và đánh index dữ liệu công thức vào Qdrant:
-    ```bash
-    python -m ai_services.app.RAG.prepareDataForRag.scripts.fromJsonToVectordb
-    ```
-
-6.  **Khởi chạy Application Server**
-    ```bash
-    python -m uvicorn ai_services.app.main:app --host 0.0.0.0 --port 8000
-    ```
+Tài liệu API chi tiết (Swagger UI) sẽ sẵn sàng tại `http://localhost:8000/docs` ngay sau khi hệ thống khởi động xong.
 
 ## Tài liệu API
 
