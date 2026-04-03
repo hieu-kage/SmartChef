@@ -32,7 +32,6 @@ services:
       - .env
     environment:
       - QDRANT_HOST=vector_db
-      - DB_HOST=postgres
       - POSTGRES_HOST=postgres
     ports:
       - "${API_PORT_EXT:-8000}:8000"

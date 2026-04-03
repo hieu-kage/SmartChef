@@ -7,7 +7,6 @@ from qdrant_client.models import VectorParams, Distance, PointStruct
 from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 
-# Load env vars for local testing
 load_dotenv()
 
 COLLECTION_NAME = "recipes"
@@ -16,7 +15,7 @@ EMBEDDING_MODEL = "intfloat/multilingual-e5-base"
 def build_embedding_text(recipe):
     gia_vi_str = ", ".join(recipe.get('gia_vi', []))
     return (
-        f"Món ăn: {recipe.get('ten_mon', '')}. "
+        f"Món ăn: {recipe.get('ten_mon', '')}. "  
         f"Mô tả: {recipe.get('mo_ta', '')}. "
         f"Nguyên liệu: {recipe.get('nguyen_lieu_search', '')}. "
         f"Gia vị: {gia_vi_str}"
@@ -61,8 +60,7 @@ def run_ingestion():
     else:
         print(f"ℹ️ Collection '{COLLECTION_NAME}' already exists. Syncing data...")
 
-    # 5. Load Data
-    # Import paths here to avoid circular imports if any
+
     from app.config.paths import RECIPES_JSON_PATH
     
     if not os.path.exists(RECIPES_JSON_PATH):
@@ -74,7 +72,6 @@ def run_ingestion():
 
     print(f"🚀 Ingesting {len(recipes_data)} recipes into Vector DB and Postgres...")
 
-    # 6. Create Table in Postgres
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS recipes (
             id TEXT PRIMARY KEY,
@@ -89,9 +86,7 @@ def run_ingestion():
     """)
     conn.commit()
 
-    # 7. Processing Loop
     for recipe in recipes_data:
-        # Vector DB Ingestion
         text = build_embedding_text(recipe)
         vector = model.encode(f"passage: {text}").tolist()
         point_id = str(uuid.uuid4())
@@ -112,7 +107,7 @@ def run_ingestion():
             ]
         )
 
-        # Postgres Ingestion
+
         cursor.execute(
             """
             INSERT INTO recipes (

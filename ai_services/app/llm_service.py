@@ -17,7 +17,15 @@ class LLMService:
     def __init__(self):
         # 1. Cấu hình môi trường & Database
         self.api_key = os.getenv("GOOGLE_API_KEY")
-        self.db_url = os.getenv("DATABASE_URL", "postgresql://admin:admin@localhost:5432/smartchef_db")
+        
+        # Lấy thông tin DB từ environment
+        pg_user = os.getenv("POSTGRES_USER", "admin")
+        pg_pass = os.getenv("POSTGRES_PASSWORD", "admin")
+        pg_host = os.getenv("POSTGRES_HOST", "localhost")
+        pg_port = os.getenv("POSTGRES_PORT", "5432")
+        pg_db = os.getenv("POSTGRES_DB", "smartchef_db")
+        
+        self.db_url = f"postgresql://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}"
         self.model_name = os.getenv("MODEL_NAME", "gemini-1.5-flash")
         self.sync_connection = psycopg.connect(self.db_url)
         if not self.api_key:
