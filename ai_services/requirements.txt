@@ -7,6 +7,7 @@ pydantic
 numpy
 pandas
 psycopg[binary]
+psycopg2-binary
 qdrant-client
 sentence-transformers
 onnxruntime
