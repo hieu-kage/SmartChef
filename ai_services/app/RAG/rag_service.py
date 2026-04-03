@@ -15,8 +15,27 @@ class RecipeRAGService:
         "thịt", "cá", "tôm", "cua", "gà", "bò", "lợn", "heo", "vịt", "trứng", 
         "đậu hũ", "sườn", "mực", "lươn", "ốc", "ếch", "giò", "chả", "xúc xích"
     ]
-    # Nhóm các nguyên liệu "nhiễu" (Gia vị/Hành tỏi) để giảm ưu tiên
     NOISY_KEYWORDS = ["tỏi", "hành", "tiêu", "muối", "đường", "vị", "dầu", "nước mắm"]
+
+    # Bộ từ điển đồng nghĩa để chuẩn hóa nguyên liệu
+    SYNONYMS = {
+        "lợn": "heo",
+        "ngô": "bắp",
+        "tàu hũ": "đậu phụ",
+        "đậu hũ": "đậu phụ",
+        "đỗ": "đậu",
+        "quả": "trái",
+        " thơm": " dứa",
+        "khóm": " dứa",
+        "mì chính": "bột ngọt"
+    }
+
+    def normalize(self, text: str) -> str:
+        """Chuẩn hóa từ ngữ vùng miền và dọn dẹp chuỗi (Ví dụ: Lợn -> Heo)"""
+        text = text.lower().strip()
+        for k, v in self.SYNONYMS.items():
+            text = text.replace(k, v)
+        return text
 
     def ingredient_match_score(self, required_ingredients, available_ingredients):
         """
@@ -28,19 +47,18 @@ class RecipeRAGService:
         if not available_ingredients or not required_ingredients:
             return 0.0
 
-        avail_norm = [a.lower().strip() for a in available_ingredients]
-        req_norm = [r.lower().strip() for r in required_ingredients]
+        avail_norm = [self.normalize(a) for a in available_ingredients]
+        req_norm = [self.normalize(r) for r in required_ingredients]
 
         total_weight = 0.0
         matched_weight = 0.0
 
         for req in req_norm:
-            # Xác định trọng số của nguyên liệu này
-            weight = 1.0 # Mặc định cho rau củ
+            weight = 1.0 
             if any(k in req for k in self.PRIMARY_KEYWORDS):
                 weight = 3.0
             elif any(k in req for k in self.NOISY_KEYWORDS):
-                weight = 0.3 # Giảm hẳn trọng số gia vị
+                weight = 0.3 
 
             total_weight += weight
             
@@ -60,14 +78,12 @@ class RecipeRAGService:
         Tìm kiếm công thức phù hợp dựa trên danh sách nguyên liệu.
         Kết hợp Semantic Search (Vector) và Weighted Keyword Matching.
         """
-        # 1. Vector Search (Lấy mẫu rộng hơn để lọc - 30 hits)
         query_vector = self.embedding.embed_ingredients(available_ingredients)
         hits = self.vectordb.search(query_vector, limit=30)
         
         if not hits:
             return []
 
-        # 2. Lấy chi tiết từ Postgres
         hit_ids = [hit.payload["recipe_id"] for hit in hits]
         db_recipes = db.get_recipes_by_ids(hit_ids)
         
@@ -79,18 +95,17 @@ class RecipeRAGService:
 
             required_ingredients_str = payload.get("nguyen_lieu_search", "")
             required_ingredients = [i.strip().lower() for i in required_ingredients_str.split(",")]
-            
-            # Tính điểm khớp có trọng số
+            print(f"DEBUG: Required ingredients: {required_ingredients}")
+            print(f"DEBUG: Available ingredients: {available_ingredients}")
             match_score = self.ingredient_match_score(
                 required_ingredients,
                 available_ingredients
             )
             
-            # Tính điểm tổng hợp (Weighted Logic)
-            # - Tăng giá trị của match_score vì nó thực tế hơn
-            combined_score = (match_score * 0.7) + (hit.score * 0.3)
 
-            if match_score >= 0.5: # Giảm ngưỡng để lấy được nhiều món tiềm năng hơn
+            combined_score = (match_score * 0.5) + (hit.score * 0.5)
+
+            if combined_score >= 0.4: 
                 candidates.append({
                     "id": r_id,
                     "ten_mon": payload["ten_mon"],

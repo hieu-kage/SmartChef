@@ -32,7 +32,10 @@ class LLMService:
             print("Warning: GOOGLE_API_KEY not found. LLM service will not work.")
             return
 
-        # 2. Khởi tạo Model
+        # 2. Khởi tạo Database (Tạo bảng nếu chưa có)
+        self._setup_database()
+
+        # 3. Khởi tạo Model
         self.llm = ChatGoogleGenerativeAI(
             model=self.model_name,
             temperature=0.7, # 0.1
@@ -110,6 +113,29 @@ class LLMService:
             input_messages_key="question",
             history_messages_key="history",
         )
+
+    def _setup_database(self):
+        """Tạo các bảng cần thiết cho Chat History và Metadata nếu chưa có"""
+        with self.sync_connection.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS chat_history (
+                    id SERIAL PRIMARY KEY,
+                    session_id TEXT NOT NULL,
+                    message JSONB NOT NULL,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE INDEX IF NOT EXISTS idx_chat_history_session_id ON chat_history (session_id);
+            """)
+            
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS session_metadata (
+                    session_id TEXT PRIMARY KEY,
+                    summary TEXT,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            self.sync_connection.commit()
+            print("✅ Database for LLM Service (History & Metadata) is ready.")
 
     # ==========================================
     # QUẢN LÝ DATABASE & TRÍ NHỚ
