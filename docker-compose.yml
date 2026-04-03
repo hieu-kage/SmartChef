@@ -5,11 +5,7 @@ services:
       - "${QDRANT_PORT_EXT:-6333}:6333"
     volumes:
       - ./vector-db/data_${COMPOSE_PROJECT_NAME:-smartchef}:/qdrant/storage
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+
 
   postgres:
     image: postgres:17
@@ -23,7 +19,7 @@ services:
     volumes:
       - ./postgres/data_${COMPOSE_PROJECT_NAME:-smartchef}:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-smartchef_db}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-smartchef_db}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -33,26 +29,14 @@ services:
       context: ./ai_services
       dockerfile: Dockerfile
     restart: always
-    environment:
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-      - MODEL_NAME=${MODEL_NAME:-gemini-2.0-flash}
-      - POSTGRES_DB=${POSTGRES_DB:-smartchef_db}
-      - POSTGRES_USER=${POSTGRES_USER:-admin}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-admin}
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - QDRANT_HOST=vector_db
-      - QDRANT_PORT=6333
-      - LANGSMITH_TRACING=${LANGSMITH_TRACING:-false}
-      - LANGSMITH_API_KEY=${LANGSMITH_API_KEY}
-      - LANGSMITH_PROJECT=${LANGSMITH_PROJECT:-smartchef}
+    env_file:
+      - .env.example
     ports:
       - "${API_PORT_EXT:-8000}:8000"
     depends_on:
       vector_db:
-        condition: service_healthy
+        condition: service_started
       postgres:
         condition: service_healthy
     volumes:
       - ./ai_services:/app
-
