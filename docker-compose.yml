@@ -6,7 +6,6 @@ services:
     volumes:
       - ./vector-db/data_${COMPOSE_PROJECT_NAME:-smartchef}:/qdrant/storage
 
-
   postgres:
     image: postgres:17
     restart: always
@@ -30,7 +29,11 @@ services:
       dockerfile: Dockerfile
     restart: always
     env_file:
-      - .env.example
+      - .env
+    environment:
+      - QDRANT_HOST=vector_db
+      - DB_HOST=postgres
+      - POSTGRES_HOST=postgres
     ports:
       - "${API_PORT_EXT:-8000}:8000"
     depends_on:
