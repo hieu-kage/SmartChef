@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
 
 # Copy requirements và cài đặt python dependencies
 COPY requirements.txt .
+RUN pip install --no-cache-dir --default-timeout=100 torch torchvision --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy toàn bộ mã nguồn vào container

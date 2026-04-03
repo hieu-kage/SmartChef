@@ -7,10 +7,9 @@ pydantic
 numpy
 pandas
 psycopg[binary]
-psycopg2-binary
 qdrant-client
 sentence-transformers
-onnxruntime-gpu
+onnxruntime
 opencv-python-headless
 langchain-core
 langchain-google-genai
@@ -18,4 +17,4 @@ langchain-postgres
 langchain-community
 google-generativeai
 beautifulsoup4
-ddgs
+duckduckgo-search
