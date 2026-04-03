@@ -1,11 +1,13 @@
 from qdrant_client import QdrantClient
-
+import os
+qdrant_host = os.getenv("QDRANT_HOST", "localhost")
+qdrant_port = int(os.getenv("QDRANT_PORT", 6333))
 class RecipeVectorDB:
     """
     Wrapper cho Qdrant Vector Database.
     """
     def __init__(self):
-        self.client = QdrantClient(url="http://localhost:6333")
+        self.client = QdrantClient(host=qdrant_host, port=qdrant_port)
         self.collection = "recipes"
 
     def search(self, vector, limit=10):

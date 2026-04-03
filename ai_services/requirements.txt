@@ -9,7 +9,7 @@ numpy
 pandas
 psycopg[binary]
 psycopg2-binary
-qdrant-client
+qdrant-client==1.8.0
 sentence-transformers
 onnxruntime
 opencv-python-headless
