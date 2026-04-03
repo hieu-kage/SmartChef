@@ -96,6 +96,12 @@ class SmartChefService:
 
         if self.llm_service:
             try:
+                # Log thông tin để debug RAG mới
+                if result["recipes"]:
+                    logger.info("Top RAG Candidates:")
+                    for r in result["recipes"]:
+                        logger.info(f"- {r['ten_mon']} (Match: {r['match_score']:.2f}, Combined: {r.get('combined_score', 0):.2f})")
+
                 suggestion = self.llm_service.generate_suggestion(
                     session_id,
                     result["detected_ingredients"],
