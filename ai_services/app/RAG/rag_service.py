@@ -104,6 +104,7 @@ class RecipeRAGService:
             
 
             combined_score = (match_score * 0.5) + (hit.score * 0.5)
+            print(f"DEBUG: Recipe {r_id} from DB has image: {recipe_detail.get('image_url')}")
 
             if combined_score >= 0.4: 
                 candidates.append({
@@ -115,10 +116,10 @@ class RecipeRAGService:
                     "nguyen_lieu_chi_tiet": recipe_detail.get("nguyen_lieu_chi_tiet", []),
                     "gia_vi": recipe_detail.get("gia_vi", []),
                     "cach_lam": recipe_detail.get("cach_lam", []),
-                    "mo_ta": recipe_detail.get("mo_ta", "")
+                    "mo_ta": recipe_detail.get("mo_ta", ""),
+                    "image_url": recipe_detail.get("image_url", "")
                 })
 
-        # 3. Sắp xếp lại danh sách dựa trên điểm tổng hợp
         candidates.sort(
             key=lambda x: x["combined_score"],
             reverse=True

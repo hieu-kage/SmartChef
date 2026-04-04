@@ -2,6 +2,7 @@
   {
     "id": "ga-kho-gung",
     "ten_mon": "Gà kho gừng",
+    "image_url": "https://cdn.tgdd.vn/2021/05/CookRecipe/GalleryStep/thanh-pham-529.jpg",
     "mo_ta": "Món gà kho gừng thơm ngon, gà mềm thấm đều gia vị, hòa quyện với vị cay cay của gừng, ăn kèm cơm nóng rất hấp dẫn.",
     "nguyen_lieu_chinh": [
       "thịt gà",
@@ -37,6 +38,7 @@
   {
     "id": "ga-kho-sa-ot",
     "ten_mon": "Gà kho sả ớt",
+    "image_url": "https://cdn.tgdd.vn/2021/06/CookProduct/1-1200x676-10.jpg",
     "mo_ta": "Món gà kho sả ớt đậm đà, cay thơm, rất ngon khi dùng với cơm nóng.",
     "nguyen_lieu_chinh": [
       "thịt gà"
@@ -372,6 +374,7 @@
   {
     "id": "canh-ga-chien-bo",
     "ten_mon": "Cánh gà chiên bơ tỏi",
+    "image_url": "https://cdn.tgdd.vn/2020/07/CookRecipe/Avatar/ga-chien-thumbnail.jpg",
     "mo_ta": "Món cánh gà chiên bơ tỏi thơm ngon, giòn da, mềm thịt, đậm đà hương vị.",
     "nguyen_lieu_chinh": [
       "thịt gà"
@@ -702,6 +705,7 @@
   {
     "id": "ga-rang-gung",
     "ten_mon": "Gà rang gừng",
+    "image_url": "https://cdn.tgdd.vn/2021/08/CookRecipe/Avatar/ga-boc-giay-bac-hap-muoi-thumbnail.jpg",
     "mo_ta": "Món gà rang gừng thơm ngon, đậm đà vị cay nồng của gừng và hương thơm của lá chanh, rất hấp dẫn khi ăn cùng cơm nóng.",
     "nguyen_lieu_chinh": [
       "thịt gà",
@@ -8880,6 +8884,7 @@
   {
     "id": "ga-xao-gung",
     "ten_mon": "Gà xào gừng",
+    "image_url": "https://cdnv2.tgdd.vn/mwg-static/common/Common/H%C3%ACnh%20m%C3%B3n%20an%20t12%20%281200%20x%20676%20px%29%20%2830%29.jpg",
     "mo_ta": "Món gà xào gừng thơm mềm, ấm bụng cho bữa cơm ngày se lạnh thêm ngon.",
     "nguyen_lieu_chinh": [
       "thịt gà",
@@ -9166,6 +9171,7 @@
   {
     "id": "gung-ngam-mat-ong",
     "ten_mon": "Gừng ngâm mật ong",
+    "image_url": "https://cdn.tgdd.vn/2026/01/CookRecipe/GalleryStep/thanh-pham-173.jpg",
     "mo_ta": "Công thức gừng ngâm mật ong đơn giản tại nhà giúp tăng cường sức đề kháng hiệu quả.",
     "nguyen_lieu_chinh": [
       "gừng"

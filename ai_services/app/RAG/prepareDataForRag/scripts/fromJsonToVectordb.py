@@ -32,9 +32,8 @@ def run_ingestion():
     pg_host = os.getenv("POSTGRES_HOST", "localhost")
     pg_port = os.getenv("POSTGRES_PORT", 5432)
 
-    # 2. Init Clients
     print(f"🔄 Connecting to Qdrant at {qdrant_host}:{qdrant_port}...")
-    qdrant = QdrantClient(host=qdrant_host, port=qdrant_port, check_compatibility=False)
+    qdrant = QdrantClient(host=qdrant_host, port=qdrant_port)
     
     print(f"🔄 Connecting to Postgres at {pg_host}:{pg_port}...")
     conn = psycopg2.connect(
@@ -46,11 +45,9 @@ def run_ingestion():
     )
     cursor = conn.cursor()
 
-    # 3. Load Model
     print(f"🧬 Loading Embedding Model: {EMBEDDING_MODEL}...")
     model = SentenceTransformer(EMBEDDING_MODEL)
 
-    # 4. Prepare Collection
     if not qdrant.collection_exists(COLLECTION_NAME):
         qdrant.create_collection(
             collection_name=COLLECTION_NAME,
@@ -81,7 +78,8 @@ def run_ingestion():
             nguyen_lieu_chi_tiet JSONB,
             cach_lam JSONB,
             thoi_gian_nau TEXT,
-            gia_vi JSONB
+            gia_vi JSONB,
+            image_url TEXT
         );
     """)
     conn.commit()
@@ -112,9 +110,9 @@ def run_ingestion():
             """
             INSERT INTO recipes (
                 id, ten_mon, mo_ta, nguyen_lieu_search,
-                nguyen_lieu_chi_tiet, cach_lam, thoi_gian_nau, gia_vi
+                nguyen_lieu_chi_tiet, cach_lam, thoi_gian_nau, gia_vi, image_url
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (id) DO UPDATE SET
                 ten_mon = EXCLUDED.ten_mon,
                 mo_ta = EXCLUDED.mo_ta,
@@ -122,7 +120,8 @@ def run_ingestion():
                 nguyen_lieu_chi_tiet = EXCLUDED.nguyen_lieu_chi_tiet,
                 cach_lam = EXCLUDED.cach_lam,
                 thoi_gian_nau = EXCLUDED.thoi_gian_nau,
-                gia_vi = EXCLUDED.gia_vi
+                gia_vi = EXCLUDED.gia_vi,
+                image_url = EXCLUDED.image_url
             """,
             (
                 recipe.get("id"),
@@ -132,7 +131,8 @@ def run_ingestion():
                 json.dumps(recipe.get("nguyen_lieu_chi_tiet", [])),
                 json.dumps(recipe.get("cach_lam", [])),
                 recipe.get("thoi_gian_nau"),
-                json.dumps(recipe.get("gia_vi", []))
+                json.dumps(recipe.get("gia_vi", [])),
+                recipe.get("image_url", "")
             )
         )
     

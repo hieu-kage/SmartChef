@@ -31,7 +31,7 @@ def get_recipes_by_ids(recipe_ids: list[str]) -> dict:
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     try:
         query = """
-            SELECT id, ten_mon, mo_ta, nguyen_lieu_search, nguyen_lieu_chi_tiet, cach_lam, thoi_gian_nau, gia_vi
+            SELECT id, ten_mon, mo_ta, nguyen_lieu_search, nguyen_lieu_chi_tiet, cach_lam, thoi_gian_nau, gia_vi, image_url
             FROM recipes
             WHERE id = ANY(%s)
         """

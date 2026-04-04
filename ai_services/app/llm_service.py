@@ -38,7 +38,7 @@ class LLMService:
         # 3. Khởi tạo Model
         self.llm = ChatGoogleGenerativeAI(
             model=self.model_name,
-            temperature=0.7, # 0.1
+            temperature=0.1, # 0.1
             top_p=0.95,
             top_k=40,
             max_output_tokens=8192,
