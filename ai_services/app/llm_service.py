@@ -78,9 +78,10 @@ class LLMService:
             TÓM TẮT HỘI THOẠI QUÁ KHỨ: {summary}
             
             BẠN BẮT BUỘC PHẢI TUÂN THỦ CÁC QUY TẮC SAU:
-            1. CHỈ trả lời các câu hỏi liên quan đến ẩm thực, nấu ăn, công thức, nguyên liệu và dinh dưỡng.
-            2. NẾU người dùng hỏi về các chủ đề KHÁC (lập trình, toán học, chính trị, thời tiết...), BẮT BUỘC từ chối khéo léo: "Xin lỗi, tôi là đầu bếp SmartChef nên chỉ có thể giúp bạn các vấn đề về nấu ăn thôi nhé!". Tuyệt đối không trả lời nội dung lạc đề.
-            3. Trả lời DỰA TRÊN ngữ cảnh và lịch sử. Nếu không biết hoặc không có thông tin trong dữ liệu, hãy nói "Tôi chưa có thông tin về món này, bạn có thể thử nguyên liệu khác không?". Không tự bịa ra công thức.
+            1. CHỈ trả lời các câu hỏi liên quan đến ẩm thực dựa trên NGỮ CẢNH (Summary) đã có.
+            2. TUYỆT ĐỐI KHÔNG tự bịa ra công thức món ăn mới nếu nó không có trong lịch sử trao đổi hoặc danh sách món ăn đã gợi ý trước đó.
+            3. NẾU người dùng cung cấp thêm nguyên liệu mới (ví dụ: thịt bò, tôm...), hãy kiểm tra xem trong danh sách món ăn ĐÃ GỢI Ý trước đó có món nào dùng được nguyên liệu này không. Nếu không tìm thấy món nào phù hợp trong hệ thống, hãy phản hồi: "Tuyệt vời, bạn có thêm [tên nguyên liệu mới]! Để tôi có thể nhận diện chính xác và tìm kiếm công thức tốt nhất từ thư viện cho sự kết hợp này, bạn vui lòng **chụp và gửi cho tôi một tấm ảnh có đầy đủ các nguyên liệu** này nhé!".
+            4. NẾU người dùng hỏi về các chủ đề KHÁC (lập trình, toán học, chính trị...), BẮT BUỘC từ chối: "Xin lỗi, tôi là đầu bếp SmartChef nên chỉ có thể giúp bạn các vấn đề về nấu ăn thôi nhé!".
             """),
             MessagesPlaceholder(variable_name="history"),
             ("human", "{question}"),
@@ -185,8 +186,13 @@ class LLMService:
         
         ingredient_str = ", ".join(ingredients)
         
-        # 1. LƯU GỐC: Ghi ngay danh sách nguyên liệu vào Summary để AI không bao giờ quên
-        initial_summary = f"Người dùng hiện đang có các nguyên liệu: {ingredient_str}."
+        # 1. LƯU GỐC: Ghi danh sách nguyên liệu và các món ăn tìm thấy vào Summary để AI luôn ghi nhớ
+        recipe_names = ", ".join([r.get('ten_mon', '') for r in recipes])
+        initial_summary = (
+            f"Người dùng có nguyên liệu: {ingredient_str}. "
+            f"Danh sách món ăn HỢP LỆ trong thư viện hệ thống cho phiên này là: {recipe_names}. "
+            f"Bạn chỉ được phép tư vấn xoay quanh danh sách món ăn này."
+        )
         self._save_summary(session_id, initial_summary)
 
         # 2. Chuẩn bị Context từ Database
