@@ -799,6 +799,7 @@
   {
     "id": "thit-kho-tieu",
     "ten_mon": "Thịt kho tiêu",
+    "image_url": "https://cdn.tgdd.vn/2021/05/CookProduct/47884A90-BACC-4926-B0B9-D0F50640C8AE-SunnyTrinh-Copy(2)-1200x676.jpeg",
     "mo_ta": "Món thịt kho tiêu thơm ngon, đậm đà vị tiêu cay nồng, ăn cùng cơm trắng thì tuyệt vời.",
     "nguyen_lieu_chinh": [
       "thịt heo"
@@ -982,6 +983,7 @@
   {
     "id": "thit-ba-chi-chay-canh",
     "ten_mon": "Thịt ba chỉ rang cháy cạnh",
+    "image_url": "https://cdn.tgdd.vn/2021/09/CookDish/cach-lam-mon-thit-ba-chi-rang-chay-canh-ngon-an-cuc-ghien-thu-avt-1200x676.jpg",
     "mo_ta": "Món thịt rang thơm ngon, nước thịt sánh đặc, cực kì bắt cơm với lớp cháy cạnh hấp dẫn.",
     "nguyen_lieu_chinh": [
       "thịt heo"
@@ -4528,6 +4530,7 @@
   {
     "id": "khoai-tay-chien",
     "ten_mon": "Khoai tây chiên",
+    "image_url": "https://cdn.tgdd.vn/2022/10/CookRecipe/GalleryStep/thanh-pham-35.jpg",
     "mo_ta": "Khoai tây chiên giòn không cần bột, vàng ươm hấp dẫn với vị bùi béo thơm ngon.",
     "nguyen_lieu_chinh": [
       "khoai tây"
@@ -10711,8 +10714,9 @@
     "thoi_gian_nau": "60 phút"
   },
   {
-    "id": "mit-non-kho-thit-ba-roi-am-a-cuc-ky-ua-com-cho-gia-inh",
-    "ten_mon": "mít non kho thịt ba rọi đậm đà, cực kỳ đưa cơm cho gia đình",
+    "id": "mit-non-kho-thit-ba-roi",
+    "ten_mon": "mít non kho thịt ba rọi đậm đà",
+    "image_url": "https://donghaifoodsaigon.com/wp-content/uploads/2025/07/mit-kho-thit.png",
     "mo_ta": "Món mít non kho thịt ba rọi thơm ngon, dẻo mềm, béo ngậy, đậm đà hương vị, rất đưa cơm.",
     "nguyen_lieu_chinh": [
       "mít non",
@@ -12911,8 +12915,9 @@
     "thoi_gian_nau": "30 phút"
   },
   {
-    "id": "thit-kho-nuoc-tuong-am-a-thom-ngon-chuan-vi-nhu-me-nau",
-    "ten_mon": "thịt kho nước tương đậm đà, thơm ngon chuẩn vị như mẹ nấu",
+    "id": "thit-kho-nuoc-tuong",
+    "ten_mon": "thịt kho nước tương",
+    "image_url": "https://cdnv2.tgdd.vn/mwg-static/common/Common/th%E1%BB%8Bt%20kho%20n%C6%B0%E1%BB%9Bc%20t%C6%B0%C6%A1ng%201200x676.jpg",
     "mo_ta": "Món thịt kho nước tương với miếng thịt mềm rục, thấm đẫm vị nước tương đậm đà, thơm lừng, ăn cùng cơm trắng nóng hổi là ngon 'nhức nách'!",
     "nguyen_lieu_chinh": [
       "thịt heo"
